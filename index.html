@@ -1,0 +1,108 @@
+<META NAME="author" CONTENT="William Sun (wsun26)">
+
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>Spheres</title>
+<meta charset="utf-8">
+</head>
+
+
+<script id="shader-vs" type="x-shader/x-vertex">
+    // shader program used for sphere
+    attribute vec3 aVertexNormal;
+    attribute vec3 aVertexPosition;
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat3 uNMatrix;
+
+    uniform vec3 uLightPosition;
+    uniform vec3 uAmbientLightColor;
+    uniform vec3 uSpecularLightColor;
+
+    // used for coloring
+    uniform vec3 uDiffuseLightColor;
+    const float shininess = 32.0;
+    varying vec4 vColor;
+    varying vec3 dLight;
+
+    void main(void)
+    {
+        // vertex shader for the sphere mesh
+        vec4 vertexPositionEye4 = uMVMatrix * vec4(aVertexPosition, 1.0);
+        vec3 vertexPositionEye3 = vertexPositionEye4.xyz / vertexPositionEye4.w;
+
+        // Calculate the vector (l) to the light source
+        vec3 vectorToLightSource = normalize(uLightPosition - vertexPositionEye3);
+
+        // Transform the normal (n) to eye coordinates
+        vec3 normalEye = normalize(uNMatrix * aVertexNormal);
+
+        // Calculate n dot l for diffuse lighting
+        float diffuseLightWeightning = max(dot(normalEye,
+                                        vectorToLightSource), 0.0);
+
+        // Calculate the reflection vector (r) that is needed for specular light
+        vec3 reflectionVector = normalize(reflect(-vectorToLightSource,
+                                                 normalEye));
+
+         vec3 viewVectorEye = -normalize(vertexPositionEye3);
+         float rdotv = max(dot(reflectionVector, viewVectorEye), 0.0);
+         float specularLightWeightning = pow(rdotv, shininess);
+
+        dLight = uDiffuseLightColor;
+
+        vColor = vec4((uAmbientLightColor
+                    + dLight * diffuseLightWeightning
+                    + uSpecularLightColor * specularLightWeightning),1.0);
+
+        gl_Position = uPMatrix*uMVMatrix*vec4(aVertexPosition, 1.0);
+
+    }
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+    precision mediump float;
+    varying vec4 vColor;            // Passed in from the vertex shader.
+
+    void main(void)
+    {
+        // fragment shader for sphere mesh
+        gl_FragColor = vColor;
+    }
+</script>
+
+<script src="gl-matrix-min.js"></script>
+<script src="webgl-utils.js"></script>
+<script src="Spheres.js"></script>
+<script src="sphere_modeling.js"></script>	
+<body onload="startup();">
+<style>
+    .border input {border-style:none;}
+    .tab {margin-left: 40px;}
+</style>
+<canvas id="myGLCanvas" width="800" height="500"></canvas>
+<form id="input_form">
+    <fieldset style="width:770px">
+        <legend>Instructions</legend>
+        <p>
+        Hello!<br>
+        Press Enter to: Add <input type="text" name="primitive" id="particle_number" onkeydown = "if (event.keyCode == 13) {return false;}" value="10" style="width:50px"> Particles
+        <span class="border">
+            | Current Count: [<input type="text" id="particle_count" value="0" readonly="readonly" style="width:50px" >]
+        </span><br>
+        Maximum Number of Particles: <input type="text" name="primitive" id="particle_max" onkeydown = "if (event.keyCode == 13) {return false;}" value="100" style="width:100px"><br>
+        Ball Size: <input type="range" name="ball_size" id="ball_size" min = "1" max = "50" value = "10" step="1"> <br>
+        Air Resistance: <input type="range" name = "resistance" id="resistance" min = "10" max = "150" value = "50"> 
+        <span class = "border">     
+            [<input type="text" name="primitive" id="ball_resistance" readonly="readonly" value = "50" style="width:25px">] (needs mouse click to update)<br>
+            (ball slows down &lt; 100 &lt; ball speeds up)<br>
+        </span>
+        Spacebar: Reset Particles and Box<br>
+
+        </p>
+    </fieldset>
+</form>
+</body>
+
+</html>
